@@ -1,0 +1,29 @@
+syntax:glob
+
+*.py[co]
+
+# Vi
+*.sw[po]
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+include
+lib
+var
+share
+develop-eggs
+.installed.cfg
+distribute-*.tar.gz
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
