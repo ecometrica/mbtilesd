@@ -25,7 +25,7 @@ def get_mbtiles(name):
     if 'paths' not in app.config:
         paths = os.environ.get('MBTILESPATH', '')
         if not paths:
-            raise RuntimeError('No paths configured.')
+            raise RuntimeError('No paths configured. Set MBTILESPATH.')
         app.config['paths'] = paths.split(':')
 
     name += '.mbtiles'
@@ -34,6 +34,19 @@ def get_mbtiles(name):
         if os.path.exists(filename):
             return MBTiles(filename)
     raise IOError(errno.ENOENT, os.strerror(errno.ENOENT))
+
+
+def get_servers():
+    """Returns a list of servers that host tile images."""
+    if app.config.get('servers', None) is None:
+        servers = os.environ.get('MBTILES_SERVERS', '')
+        if servers:
+            app.config['servers'] = servers.split(',')
+        else:
+            # Dynamically construct the server list based on the host
+            return [request.host]
+
+    return app.config['servers']
 
 
 @app.errorhandler(404)
@@ -59,9 +72,13 @@ def tilejson(name):
                 scheme='xyz',
                 tilejson='2.0.0',
                 tiles=[
-                    '//{host}/v3/{name}/{{z}}/{{x}}/{{y}}.{ext}'.format(
-                        host=request.host, name=name, ext=metadata['format']
+                    '{http}://{host}/v3/{name}/{{z}}/{{x}}/{{y}}.{ext}'.format(
+                        http=request.scheme,
+                        host=host,
+                        name=name,
+                        ext=metadata['format']
                     )
+                    for host in get_servers()
                 ],
                 type=metadata['type'],
                 version=metadata['version'],

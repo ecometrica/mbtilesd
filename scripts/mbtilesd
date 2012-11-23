@@ -32,13 +32,19 @@ def parse_args(args):
     group.add_argument('--port',
                        default=5000, type=int,
                        help='Port to listen on. Defaults to 5000')
+    group.add_argument('--server', dest='servers',
+                       action='append', default=None,
+                       help='Servers that host tile images')
 
     return parser.parse_args(args=args)
 
 
 def main(args):
     args = parse_args(args=args)
-    app.config['paths'] = args.paths
+    app.config.update(dict(
+        paths=args.paths,
+        servers=args.servers
+    ))
     app.run(host=args.host,
             port=args.port,
             debug=args.debug)
