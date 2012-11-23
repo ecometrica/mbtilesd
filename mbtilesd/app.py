@@ -23,7 +23,10 @@ def get_mbtiles(name):
     Searches through config['paths'] and finds the earliest match.
     """
     if 'paths' not in app.config:
-        app.config['paths'] = os.environ.get('MBTILESPATH', '').split(':')
+        paths = os.environ.get('MBTILESPATH', '')
+        if not paths:
+            raise RuntimeError('No paths configured.')
+        app.config['paths'] = paths.split(':')
 
     name += '.mbtiles'
     for path in app.config['paths']:
