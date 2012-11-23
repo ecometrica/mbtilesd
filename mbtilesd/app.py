@@ -36,7 +36,7 @@ def get_mbtiles(name):
 @app.errorhandler(404)
 def http_not_found(error):
     """Responds with a plain-text HTTP Not Found (404)."""
-    return 'Not Found', 404, {'Content-Type': 'text-plain'}
+    return 'Not Found', 404, {b'Content-Type': 'text/plain'}
 
 
 @app.route('/v3/<name>.json')
@@ -87,8 +87,8 @@ def tilejson(name):
 
             return (json.dumps(OrderedDict(sorted(result.iteritems()))),
                     None,
-                    {'Content-Type': 'application/json',
-                     'Access-Control-Allow-Origin': '*'})
+                    {b'Content-Type': 'application/json',
+                     b'Access-Control-Allow-Origin': '*'})
     except (InvalidFileError, IOError):
         abort(404)
 
@@ -111,7 +111,7 @@ def tile(name, x, y, z, format, content_type):
                                   z=z)
             if content is None:
                 abort(404)
-            return bytes(content), 200, {'Content-Type': content_type}
+            return bytes(content), 200, {b'Content-Type': content_type}
 
     except (InvalidFileError, IOError):
         abort(404)
