@@ -8,9 +8,12 @@ import errno
 import os
 import json
 
-from flask import abort, Flask, request
+from flask import Flask, request
 
 from gdal2mbtiles.mbtiles import InvalidFileError, MBTiles, Metadata
+
+from .exceptions import (NotFound, TileNotFound, TilesetNotFound,
+                         WerkzeugNotFound)
 
 
 app = Flask(__name__)
@@ -52,7 +55,9 @@ def get_servers():
 @app.errorhandler(404)
 def http_not_found(error):
     """Responds with a plain-text HTTP Not Found (404)."""
-    return 'Not Found', 404, {b'Content-Type': 'text/plain'}
+    if type(error) == WerkzeugNotFound:
+        error = NotFound()
+    return error.get_response(environ={})
 
 
 @app.route('/v3/<name>.json')
@@ -110,7 +115,7 @@ def tilejson(name):
                     {b'Content-Type': 'application/json',
                      b'Access-Control-Allow-Origin': '*'})
     except (InvalidFileError, IOError):
-        abort(404)
+        raise TilesetNotFound()
 
 
 def tile(name, x, y, z, format, content_type):
@@ -123,18 +128,18 @@ def tile(name, x, y, z, format, content_type):
     try:
         with get_mbtiles(name=name) as mbtiles:
             if mbtiles.metadata['format'] != format:
-                abort(404)
+                raise TileNotFound()
 
             x, y, z = [int(n) for n in (x, y, z)]
             content = mbtiles.get(x=x,
                                   y=2 ** z - 1 - y,
                                   z=z)
             if content is None:
-                abort(404)
+                raise TileNotFound()
             return bytes(content), 200, {b'Content-Type': content_type}
 
     except (InvalidFileError, IOError):
-        abort(404)
+        raise TilesetNotFound()
 
 
 @app.route('/v3/<name>/<z>/<x>/<y>.png')
