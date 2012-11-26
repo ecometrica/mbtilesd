@@ -128,7 +128,7 @@ def tilejson(name):
 
             return (json.dumps(OrderedDict(sorted(result.iteritems()))),
                     None,
-                    {b'Content-Type': 'application/json',
+                    {b'Content-Type': 'application/json; charset=utf-8',
                      b'Access-Control-Allow-Origin': '*'})
     except (InvalidFileError, IOError):
         raise TilesetNotFound()
