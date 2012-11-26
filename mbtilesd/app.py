@@ -4,6 +4,8 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from collections import OrderedDict
+from datetime import datetime
+from email.utils import formatdate
 import errno
 import os
 import json
@@ -33,6 +35,7 @@ def load_config(filename=None):
 
     # Default configuration
     app.config.update(dict(
+        CACHE_MAX_AGE=86400,    # 1 day
         PATHS=[os.path.abspath(os.path.curdir)],
         SERVERS=[],
     ))
@@ -143,13 +146,32 @@ def tile(name, x, y, z, format, content_type):
             if mbtiles.metadata['format'] != format:
                 raise TileNotFound()
 
+            mtime = os.path.getmtime(mbtiles.filename)
+            mdatetime = datetime.fromtimestamp(mtime)
+            modified_since = request.if_modified_since
+            unmodified_since = request.if_unmodified_since
+            if (modified_since is not None and mdatetime <= modified_since) or \
+               (unmodified_since is not None and mdatetime > unmodified_since):
+                return b'', 304
+
             x, y, z = [int(n) for n in (x, y, z)]
             content = mbtiles.get(x=x,
                                   y=2 ** z - 1 - y,
                                   z=z)
             if content is None:
                 raise TileNotFound()
-            return bytes(content), 200, {b'Content-Type': content_type}
+            return (
+                bytes(content),
+                200,
+                {
+                    b'Content-Type': content_type,
+                    b'Cache-Control': 'max-age={0}'.format(
+                        app.config['CACHE_MAX_AGE']
+                    ),
+                    b'Last-Modified': formatdate(mtime, localtime=False,
+                                                 usegmt=True),
+                }
+            )
 
     except (InvalidFileError, IOError):
         raise TilesetNotFound()
