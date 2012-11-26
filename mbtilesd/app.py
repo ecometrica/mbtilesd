@@ -19,20 +19,36 @@ from .exceptions import (NotFound, TileNotFound, TilesetNotFound,
 app = Flask(__name__)
 
 
+def load_config(filename=None):
+    if hasattr(app, 'config_filename'):
+        # Already configured
+        return
+
+    if filename is None:
+        filename = '/etc/mbtilesd/settings.py'
+        silent = True
+    else:
+        silent = False
+    app.config_filename = filename
+
+    # Default configuration
+    app.config.update(dict(
+        PATHS=[os.path.abspath(os.path.curdir)],
+        SERVERS=[],
+    ))
+    app.config.from_pyfile(filename, silent=silent)
+
+app.before_first_request(load_config)
+
+
 def get_mbtiles(name):
     """
     Returns the MBTiles associated with `name`.
 
-    Searches through config['paths'] and finds the earliest match.
+    Searches through config['PATHS'] and finds the earliest match.
     """
-    if 'paths' not in app.config:
-        paths = os.environ.get('MBTILESPATH', '')
-        if not paths:
-            raise RuntimeError('No paths configured. Set MBTILESPATH.')
-        app.config['paths'] = paths.split(':')
-
     name += '.mbtiles'
-    for path in app.config['paths']:
+    for path in app.config['PATHS']:
         filename = os.path.join(path, name)
         if os.path.exists(filename):
             return MBTiles(filename)
@@ -41,15 +57,12 @@ def get_mbtiles(name):
 
 def get_servers():
     """Returns a list of servers that host tile images."""
-    if app.config.get('servers', None) is None:
-        servers = os.environ.get('MBTILES_SERVERS', '')
-        if servers:
-            app.config['servers'] = servers.split(',')
-        else:
-            # Dynamically construct the server list based on the host
-            return [request.host]
+    servers = app.config['SERVERS']
+    if servers:
+        return servers
 
-    return app.config['servers']
+    # Dynamically construct the server list based on the host
+    return [request.host]
 
 
 @app.errorhandler(404)

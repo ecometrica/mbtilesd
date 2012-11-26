@@ -5,9 +5,10 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import argparse
+import os
 import sys
 
-from mbtilesd.app import app
+from mbtilesd.app import app, load_config
 
 
 def parse_args(args):
@@ -19,9 +20,12 @@ def parse_args(args):
     parser.add_argument('--debug',
                         action='store_const', const=True, default=False,
                         help='Debug mode')
+    parser.add_argument('--config',
+                        default=None,
+                        help='Override default configuration.')
 
     group = parser.add_argument_group(title='Positional arguments')
-    group.add_argument('paths', metavar='DIR', nargs='+',
+    group.add_argument('paths', metavar='DIR', nargs='*',
                        help='Search path for MBTiles files')
 
     group = parser.add_argument_group(title='Networking arguments')
@@ -33,21 +37,26 @@ def parse_args(args):
                        default=5000, type=int,
                        help='Port to listen on. Defaults to 5000')
     group.add_argument('--server', dest='servers',
-                       action='append', default=None,
+                       action='append', default=[],
                        help='Servers that host tile images')
 
-    return parser.parse_args(args=args)
+    args = parser.parse_args(args=args)
+
+    load_config(filename=args.config)
+    if args.debug:
+        app.config['DEBUG'] = args.debug
+    if args.paths:
+        app.config['PATHS'] = args.paths
+    if args.servers:
+        app.config['SERVERS'] = args.servers
+
+    return args
 
 
 def main(args):
     args = parse_args(args=args)
-    app.config.update(dict(
-        paths=args.paths,
-        servers=args.servers
-    ))
     app.run(host=args.host,
-            port=args.port,
-            debug=args.debug)
+            port=args.port)
     return 0
 
 
