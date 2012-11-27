@@ -146,7 +146,9 @@ def tile(name, x, y, z, format, content_type):
             if mbtiles.metadata['format'] != format:
                 raise TileNotFound()
 
-            mtime = os.path.getmtime(mbtiles.filename)
+            # mtime needs to be an int, because Last-Modified headers aren't
+            # millisecond-precise.
+            mtime = int(os.path.getmtime(mbtiles.filename))
             mdatetime = datetime.fromtimestamp(mtime)
             modified_since = request.if_modified_since
             unmodified_since = request.if_unmodified_since
