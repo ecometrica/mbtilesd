@@ -18,7 +18,24 @@ from .exceptions import (NotFound, TileNotFound, TilesetNotFound,
                          WerkzeugNotFound)
 
 
-app = Flask(__name__)
+class App(Flask):
+    def make_default_options_response(self, *args, **kwargs):
+        # Allow XHR requests with a preflight OPTIONS request
+        rv = super(App, self).make_default_options_response(*args, **kwargs)
+        allowed_headers = request.headers.get(b'Access-Control-Request-Headers',
+                                              None)
+        if allowed_headers is not None:
+            rv.headers.add(b'Access-Control-Allow-Headers', allowed_headers)
+        return rv
+
+    def make_response(self, rv, *args, **kwargs):
+        # Allow requests from any origin
+        rv = super(App, self).make_response(rv, *args, **kwargs)
+        rv.headers.add(b'Access-Control-Allow-Origin', '*')
+        return rv
+
+
+app = App(__name__)
 
 
 def load_config(filename=None):
@@ -128,8 +145,7 @@ def tilejson(name):
 
             return (json.dumps(OrderedDict(sorted(result.iteritems()))),
                     None,
-                    {b'Content-Type': 'application/json; charset=utf-8',
-                     b'Access-Control-Allow-Origin': '*'})
+                    {b'Content-Type': 'application/json; charset=utf-8'})
     except (InvalidFileError, IOError):
         raise TilesetNotFound()
 
