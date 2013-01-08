@@ -7,10 +7,11 @@ from collections import OrderedDict
 from datetime import datetime
 from email.utils import formatdate
 import errno
-import os
 import json
+import os
+import re
 
-from flask import Flask, request
+from flask import abort, Flask, request
 
 from gdal2mbtiles.mbtiles import InvalidFileError, MBTiles, Metadata
 
@@ -146,10 +147,17 @@ def tilejson(name):
             results = json.dumps(OrderedDict(sorted(result.iteritems())))
             jsonp = request.args.get('callback')
             if jsonp is not None:
-                results = '%(callback)s(%(results)s)' % {
-                    'callback': jsonp,
-                    'results': results
-                }
+                if not re.match('[A-Za-z_]\w*$', jsonp):
+                    # This is not a valid jsonp identifier.
+                    abort(400)
+
+                return (
+                    '{callback}({results})'.format(
+                        callback=jsonp, results=results
+                    ),
+                    None,
+                    {b'Content-Type': 'application/javascript; charset=utf-8'}
+                )
             return (results,
                     None,
                     {b'Content-Type': 'application/json; charset=utf-8'})
