@@ -143,14 +143,7 @@ def tilejson(name):
                                     (bounds[3] + bounds[1]) / 2,
                                     (maxzoom + minzoom) / 2]
 
-            results = json.dumps(OrderedDict(sorted(result.iteritems())))
-            jsonp = request.args.get('callback')
-            if jsonp is not None:
-                results = '%(callback)s(%(results)s)' % {
-                    'callback': jsonp,
-                    'results': results
-                }
-            return (results,
+            return (json.dumps(OrderedDict(sorted(result.iteritems()))),
                     None,
                     {b'Content-Type': 'application/json; charset=utf-8'})
     except (InvalidFileError, IOError):
