@@ -97,6 +97,7 @@ def http_not_found(error):
 @app.route('/v3/<name>.json')
 def tilejson(name):
     """Responds with TileJSON for `name`."""
+    secure = 'secure' in request.args
     try:
         with get_mbtiles(name=name) as mbtiles:
             metadata = mbtiles.metadata
@@ -112,7 +113,7 @@ def tilejson(name):
                 tilejson='2.0.0',
                 tiles=[
                     '{http}://{host}/v3/{name}/{{z}}/{{x}}/{{y}}.{ext}'.format(
-                        http=request.scheme,
+                        http='https' if secure else 'http',
                         host=host,
                         name=name,
                         ext=metadata['format']
