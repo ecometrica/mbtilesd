@@ -62,15 +62,15 @@ def load_config(filename=None):
 app.before_first_request(load_config)
 
 
-def get_mbtiles(name):
+def get_mbtiles(name, folder=''):
     """
-    Returns the MBTiles associated with `name`.
+    Returns the MBTiles associated with `folder` and `name`.
 
     Searches through config['PATHS'] and finds the earliest match.
     """
-    name += '.mbtiles'
+    mbtiles_path = os.path.join(folder, '{0}.mbtiles'.format(name))
     for path in app.config['PATHS']:
-        filename = os.path.join(path, name)
+        filename = os.path.join(path, mbtiles_path)
         if os.path.exists(filename):
             return MBTiles(filename)
     raise IOError(errno.ENOENT, os.strerror(errno.ENOENT))
@@ -94,12 +94,13 @@ def http_not_found(error):
     return error.get_response(environ={})
 
 
+@app.route('/v3/<folder>.<name>.json')
 @app.route('/v3/<name>.json')
-def tilejson(name):
-    """Responds with TileJSON for `name`."""
+def tilejson(name, folder=''):
+    """Responds with TileJSON for `name` and optional `folder`."""
     secure = 'secure' in request.args
     try:
-        with get_mbtiles(name=name) as mbtiles:
+        with get_mbtiles(name=name, folder=folder) as mbtiles:
             metadata = mbtiles.metadata
 
             result = dict(
