@@ -103,6 +103,12 @@ def tilejson(name, folder=''):
         with get_mbtiles(name=name, folder=folder) as mbtiles:
             metadata = mbtiles.metadata
 
+            if folder:
+                mbtiles_name = '{folder}.{name}'.format(folder=folder,
+                                                        name=name)
+            else:
+                mbtiles_name = name
+
             result = dict(
                 description=metadata['description'],
                 filesize=os.path.getsize(mbtiles.filename),
@@ -116,7 +122,7 @@ def tilejson(name, folder=''):
                     '{http}://{host}/v3/{name}/{{z}}/{{x}}/{{y}}.{ext}'.format(
                         http='https' if secure else 'http',
                         host=host,
-                        name=name,
+                        name=mbtiles_name,
                         ext=metadata['format']
                     )
                     for host in get_servers()
@@ -167,7 +173,7 @@ def tilejson(name, folder=''):
         raise TilesetNotFound()
 
 
-def tile(name, x, y, z, format, content_type):
+def tile(name, x, y, z, format, content_type, folder=''):
     """
     Responds with raw tile data for `name` at (`x`, `y``, `z``).
 
@@ -175,7 +181,7 @@ def tile(name, x, y, z, format, content_type):
     content_type: Used to determine the Content-Type of the response.
     """
     try:
-        with get_mbtiles(name=name) as mbtiles:
+        with get_mbtiles(name=name, folder=folder) as mbtiles:
             if mbtiles.metadata['format'] != format:
                 raise TileNotFound()
 
@@ -212,17 +218,19 @@ def tile(name, x, y, z, format, content_type):
         raise TilesetNotFound()
 
 
+@app.route('/v3/<folder>.<name>/<z>/<x>/<y>.png')
 @app.route('/v3/<name>/<z>/<x>/<y>.png')
-def tile_png(name, x, y, z):
+def tile_png(name, x, y, z, folder=''):
     """Responds with a PNG for `name` at (`x`, `y``, `z``)."""
     return tile(name=name, x=x, y=y, z=z,
                 format=Metadata.latest().FORMATS.PNG,
-                content_type='image/png')
+                content_type='image/png', folder=folder)
 
 
+@app.route('/v3/<folder>.<name>/<z>/<x>/<y>.jpg')
 @app.route('/v3/<name>/<z>/<x>/<y>.jpg')
-def jpgtile(name, x, y, z):
+def jpgtile(name, x, y, z, folder=''):
     """Responds with a JPEG for `name` at (`x`, `y``, `z``)."""
     return tile(name=name, x=x, y=y, z=z,
                 format=Metadata.latest().FORMATS.JPG,
-                content_type='image/jpeg')
+                content_type='image/jpeg', folder=folder)
